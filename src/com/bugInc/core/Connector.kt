@@ -10,7 +10,7 @@ const val SYNC: Byte = 1
 const val GET_STATE: Byte = 2
 const val SET_STATE: Byte = 3
 
-class Connector {
+class Connector(private val _send: (Letter) -> Any, private val _receive: (Letter) -> Any) {
 
     private var port: Port? = null
 
@@ -47,23 +47,18 @@ class Connector {
         return (controllers[ID] as Controller).geometry
     }
 
-    val receive: (Letter) -> Unit = {
-        println("<- $it")
-        when (it.COMMAND) {
-            SYNC -> {
-                (controllers[it.ID] as Controller).state = it.DATA
-            }
-            else -> throw IllegalArgumentException("Command ${it.COMMAND} is not found")
+    private val receive: (Letter) -> Unit = { letter ->
+        _receive(letter)
+        when (letter.COMMAND) {
+            SYNC -> (controllers[letter.ID] as Controller).state = letter.DATA
+            else -> throw IllegalArgumentException("Command ${letter.COMMAND} is not found")
         }
     }
 
     fun send(letter: Letter) {
-        println("-> $letter")
-        if (port != null) {
-            port!!.put(letter)
-        } else {
-            throw Error("COM Port is not open")
-        }
+        _send(letter)
+        if (port != null) port!!.put(letter)
+        else throw Error("COM Port is not open")
     }
 
     fun run(port: SerialPort) {
@@ -72,10 +67,7 @@ class Connector {
     }
 
     fun stop() {
-        if (port != null) {
-            port!!.start = false
-        } else {
-            throw Error("COM Port is not open")
-        }
+        if (port != null) port!!.start = false
+        else throw Error("COM Port is not open")
     }
 }

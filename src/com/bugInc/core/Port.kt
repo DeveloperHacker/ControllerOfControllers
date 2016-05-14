@@ -7,14 +7,13 @@ import java.util.*
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-const val QFIELDS = 5
+const val QFIELDS = 4
 
 data class Letter constructor(
         val ID: Byte,
         val COMMAND: Byte,
         val DATA: Byte,
-        val FLAG: Byte,
-        val SUM: Byte = (ID.hashCode() * 3 + COMMAND.hashCode() * 5 + DATA.hashCode() * 7 + FLAG.hashCode() * 11).toByte()
+        val FLAG: Byte
 )
 
 class Port constructor(openPort: SerialPort, private val receive: (Letter) -> Unit) {
@@ -73,7 +72,6 @@ class Port constructor(openPort: SerialPort, private val receive: (Letter) -> Un
             mail.add(letter.COMMAND)
             mail.add(letter.DATA)
             mail.add(letter.FLAG)
-            mail.add(letter.SUM)
         }
     }
 }
