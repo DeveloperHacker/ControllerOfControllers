@@ -2,6 +2,7 @@ package com.bugInc.app;
 
 import com.bugInc.core.*;
 import com.fazecast.jSerialComm.SerialPort;
+import kotlin.Unit;
 
 import javax.swing.*;
 
@@ -20,6 +21,9 @@ public class MainForm extends JFrame {
     private JComboBox<String> PortComboBox;
     private JButton updateButton;
     private JComboBox<Integer> baudRateComboBox;
+    private JButton chatButton;
+
+    private ChatForm chat = null;
 
     private MainForm(String title) {
         super(title);
@@ -53,16 +57,13 @@ public class MainForm extends JFrame {
         });
 
         Connector connector = new Connector(letter -> {
-            new MessageBox("Output", "ID: " + letter.getID()
+            String message = "ID: " + letter.getID()
                     + "\nCOMMAND: " + letter.getCOMMAND()
                     + "\nDATA: " + letter.getDATA()
-                    + "\nFLAG: " + letter.getFLAG()).setVisible(true);
-            return true;
-        }, letter -> {
-            new MessageBox("Input", "ID: " + letter.getID()
-                    + "\nCOMMAND: " + letter.getCOMMAND()
-                    + "\nDATA: " + letter.getDATA()
-                    + "\nFLAG: " + letter.getFLAG()).setVisible(true);
+                    + "\nFLAG: " + letter.getFLAG();
+            return new MessageBox("Input", message);
+        }, b -> {
+            if (chat != null) chat.add(b.toString());
             return true;
         });
         final SerialPort[] openPort = {null};
@@ -78,6 +79,7 @@ public class MainForm extends JFrame {
                         baudRateComboBox.setEnabled(false);
                         updateButton.setEnabled(false);
                         sendButton.setEnabled(true);
+                        chatButton.setEnabled(true);
                         connector.run(openPort[0]);
                     }
                 } else {
@@ -86,6 +88,8 @@ public class MainForm extends JFrame {
                     baudRateComboBox.setEnabled(true);
                     updateButton.setEnabled(true);
                     sendButton.setEnabled(false);
+                    chatButton.setEnabled(false);
+                    if (chat != null) chat.dispose();
                     openPort[0].closePort();
                     connector.stop();
                 }
@@ -100,6 +104,12 @@ public class MainForm extends JFrame {
             Byte data = Byte.valueOf(DataTextField.getText());
             Byte flag = Byte.valueOf(FlagTextField.getText());
             connector.send(new Letter(id, command, data, flag));
+        });
+
+        chatButton.setEnabled(false);
+        chatButton.addActionListener(e -> {
+            if (chat != null) chat.dispose();
+            chat = new ChatForm("Chat", connector);
         });
     }
 

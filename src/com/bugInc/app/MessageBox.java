@@ -15,10 +15,10 @@ public class MessageBox extends JFrame {
         super(title);
         setContentPane(rootPanel);
         pack();
-        setBounds(30, 30, 300, 150);
-        setResizable(false);
+        setBounds(200, 200, 300, 150);
+        setResizable(true);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setVisible(false);
+        setVisible(true);
 
         textPane1.setText(message);
 

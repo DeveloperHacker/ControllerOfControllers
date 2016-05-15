@@ -10,7 +10,7 @@ const val SYNC: Byte = 1
 const val GET_STATE: Byte = 2
 const val SET_STATE: Byte = 3
 
-class Connector(private val _send: (Letter) -> Any, private val _receive: (Letter) -> Any) {
+class Connector(private val letter: (Letter) -> Any, private val byte: (Byte) -> Any) {
 
     private var port: Port? = null
 
@@ -48,7 +48,7 @@ class Connector(private val _send: (Letter) -> Any, private val _receive: (Lette
     }
 
     private val receive: (Letter) -> Unit = { letter ->
-        _receive(letter)
+        letter(letter)
         when (letter.COMMAND) {
             SYNC -> (controllers[letter.ID] as Controller).state = letter.DATA
             else -> throw IllegalArgumentException("Command ${letter.COMMAND} is not found")
@@ -56,18 +56,22 @@ class Connector(private val _send: (Letter) -> Any, private val _receive: (Lette
     }
 
     fun send(letter: Letter) {
-        _send(letter)
         if (port != null) port!!.put(letter)
         else throw Error("COM Port is not open")
     }
 
+    fun send(byte: Byte) {
+        if (port != null) port!!.put(byte)
+        else throw Error("COM Port is not open")
+    }
+
     fun run(port: SerialPort) {
-        this.port = Port(port, receive)
-        this.port!!.start = true
+        this.port = Port(port, receive, { byte(it) })
+        this.port!!.start()
     }
 
     fun stop() {
-        if (port != null) port!!.start = false
+        if (port != null) port!!.stop()
         else throw Error("COM Port is not open")
     }
 }

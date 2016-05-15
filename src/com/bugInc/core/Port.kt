@@ -7,71 +7,86 @@ import java.util.*
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-const val QFIELDS = 4
-
 data class Letter constructor(
         val ID: Byte,
         val COMMAND: Byte,
         val DATA: Byte,
         val FLAG: Byte
-)
+) {
+    companion object {
+        val FIELDS = 4
+    }
+}
 
-class Port constructor(openPort: SerialPort, private val receive: (Letter) -> Unit) {
+class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Unit, private val byte: (Byte) -> Unit) {
 
-    var start = false
-        set(value) {
-            if (!start && value) {
-                val thread1 = object : Thread() {
-                    override fun run() {
-                        while (start) {
-                            synchronized(mail) {
-                                if (!mail.isEmpty()) {
-                                    output.print(mail.element())
-                                    output.flush()
-                                    mail.remove()
-                                }
+    val outMail: Queue<Byte> = LinkedList()
+    val inpMail: Queue<Byte> = LinkedList()
+
+    private lateinit var inpThread: Thread
+    private lateinit var outThread: Thread
+
+    private var start = false
+    fun start() {
+        if (!start) {
+            inpThread = object : Thread() {
+                override fun run() {
+                    while (start) {
+                        synchronized(scanner) {
+                            if (scanner.hasNextLine()) {
+                                val b = scanner.nextLine().toByte()
+                                inpMail.add(b)
+                                byte(b)
                             }
-                            sleep(200)
+                            if (inpMail.size == Letter.FIELDS) {
+                                letter(Letter(
+                                        ID = inpMail.poll(),
+                                        COMMAND = inpMail.poll(),
+                                        DATA = inpMail.poll(),
+                                        FLAG = inpMail.poll()
+                                ))
+                            }
                         }
+                        sleep(100)
                     }
                 }
-                val letter = ArrayList<Byte>()
-                val thread2 = object : Thread() {
-                    override fun run() {
-                        while (start) {
-                            synchronized(scanner) {
-                                if (scanner.hasNextLine()) {
-                                    val str = scanner.nextLine()
-                                    letter.add(str.toByte())
-                                    if (letter.size == QFIELDS) {
-                                        receive(Letter(letter[0], letter[1], letter[2], letter[3]))
-                                        letter.clear()
-                                    }
-                                }
-                            }
-                            sleep(100)
-                        }
-                    }
-                }
-                field = value
-                thread1.start()
-                thread2.start()
             }
-            field = value
+            outThread = object : Thread() {
+                override fun run() {
+                    while (start) {
+                        synchronized(outMail) {
+                            if (!outMail.isEmpty()) {
+                                output.print(outMail.element())
+                                output.flush()
+                                outMail.remove()
+                            }
+                        }
+                        sleep(200)
+                    }
+                }
+            }
+            start = true
+            inpThread.start()
+            outThread.start()
         }
+    }
 
-    val mail: Queue<Byte> = LinkedList()
+    fun stop() {
+        start = false
+    }
 
     val output = PrintWriter(openPort.outputStream)
 
     val scanner = Scanner(openPort.inputStream)
 
     fun put(letter: Letter) {
-        synchronized(mail) {
-            mail.add(letter.ID)
-            mail.add(letter.COMMAND)
-            mail.add(letter.DATA)
-            mail.add(letter.FLAG)
+        synchronized(outMail) {
+            outMail.add(letter.ID)
+            outMail.add(letter.COMMAND)
+            outMail.add(letter.DATA)
+            outMail.add(letter.FLAG)
         }
     }
+
+    fun put(byte: Byte) = synchronized(outMail) { outMail.add(byte) }
 }
