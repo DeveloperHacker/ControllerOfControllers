@@ -3,6 +3,8 @@ package com.bugInc.app;
 import com.bugInc.core.Connector;
 
 import javax.swing.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 public class ChatForm extends JFrame {
     private JButton sendButton;
@@ -27,6 +29,25 @@ public class ChatForm extends JFrame {
                 connector.send(b);
             } catch (Exception ignore) {
                 LogTextPane.setText(LogTextPane.getText() + "> Message " + message + " is not byte\n");
+            }
+        });
+
+        OutputTextPane.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+            }
+
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    sendButton.doClick();
+                    OutputTextPane.setText("");
+                }
             }
         });
     }
