@@ -2,6 +2,9 @@ package com.bugInc.app;
 
 import com.bugInc.core.Connector;
 
+//** ** Created by DeveloperHacker ** **//
+//* https://github.com/DeveloperHacker *//
+
 import javax.swing.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -24,11 +27,10 @@ public class ChatForm extends JFrame {
         sendButton.addActionListener(e -> {
             String message = OutputTextPane.getText();
             try {
-                byte b = Byte.valueOf(message);
                 LogTextPane.setText(LogTextPane.getText() + "> " + message + "\n");
-                connector.send(b);
-            } catch (Exception ignore) {
-                LogTextPane.setText(LogTextPane.getText() + "> Message " + message + " is not byte\n");
+                for (Byte b : message.getBytes()) connector.send(b);
+            } catch (Exception error) {
+                new MessageBox("Error", error.toString());
             }
         });
 

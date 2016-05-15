@@ -10,11 +10,10 @@ import java.util.*
 data class Letter constructor(
         val ID: Byte,
         val COMMAND: Byte,
-        val DATA: Byte,
-        val FLAG: Byte
+        val DATA: Byte
 ) {
     companion object {
-        val FIELDS = 4
+        val FIELDS = 3
     }
 }
 
@@ -28,26 +27,24 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
 
     private var start = false
     fun start() {
+        scanner.useDelimiter("")
         if (!start) {
             inpThread = object : Thread() {
                 override fun run() {
                     while (start) {
-                        synchronized(scanner) {
-                            if (scanner.hasNextLine()) {
-                                val b = scanner.nextLine().toByte()
-                                inpMail.add(b)
-                                byte(b)
-                            }
-                            if (inpMail.size == Letter.FIELDS) {
-                                letter(Letter(
-                                        ID = inpMail.poll(),
-                                        COMMAND = inpMail.poll(),
-                                        DATA = inpMail.poll(),
-                                        FLAG = inpMail.poll()
-                                ))
-                            }
+                        if (scanner.hasNext()) {
+                            val char = scanner.next()[0]
+                            val b = char.toByte()
+                            inpMail.add(b)
+                            byte(b)
                         }
-                        sleep(100)
+                        while (inpMail.size >= Letter.FIELDS) {
+                            letter(Letter(
+                                    ID = inpMail.poll(),
+                                    COMMAND = inpMail.poll(),
+                                    DATA = inpMail.poll()
+                            ))
+                        }
                     }
                 }
             }
@@ -56,12 +53,12 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
                     while (start) {
                         synchronized(outMail) {
                             if (!outMail.isEmpty()) {
-                                output.print(outMail.element())
+                                val str = StringBuilder("")
+                                while (!outMail.isEmpty()) str.append(outMail.poll().toChar())
+                                output.print(str.toString())
                                 output.flush()
-                                outMail.remove()
                             }
                         }
-                        sleep(200)
                     }
                 }
             }
@@ -84,7 +81,6 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
             outMail.add(letter.ID)
             outMail.add(letter.COMMAND)
             outMail.add(letter.DATA)
-            outMail.add(letter.FLAG)
         }
     }
 

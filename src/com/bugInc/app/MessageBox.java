@@ -15,8 +15,8 @@ public class MessageBox extends JFrame {
         super(title);
         setContentPane(rootPanel);
         pack();
-        setBounds(200, 200, 300, 150);
-        setResizable(true);
+        setBounds(200, 200, 300, 120);
+        setResizable(false);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setVisible(true);
 
