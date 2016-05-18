@@ -57,7 +57,15 @@ class Connector(private val letter: (Letter) -> Any, private val byte: (Byte) ->
     }
 
     fun send(letter: Letter) {
-        if (port != null) port!!.put(letter)
+        if (port != null) {
+            port!!.put(letter.ID)
+            port!!.put(letter.COMMAND)
+            port!!.put(letter.DATA)
+        } else throw Error("COM Port is not open")
+    }
+
+    fun send(letter: String) {
+        if (port != null) letter.forEach { char -> port!!.put(char.toByte()) }
         else throw Error("COM Port is not open")
     }
 

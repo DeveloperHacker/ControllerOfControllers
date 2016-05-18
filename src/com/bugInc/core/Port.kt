@@ -76,13 +76,5 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
 
     val scanner = Scanner(openPort.inputStream)
 
-    fun put(letter: Letter) {
-        synchronized(outMail) {
-            outMail.add(letter.ID)
-            outMail.add(letter.COMMAND)
-            outMail.add(letter.DATA)
-        }
-    }
-
     fun put(byte: Byte) = synchronized(outMail) { outMail.add(byte) }
 }
