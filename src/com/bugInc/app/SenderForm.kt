@@ -20,6 +20,7 @@ class SenderForm(title: String) : JFrame(title) {
     private lateinit var updateButton: JButton
     private lateinit var connectButton: JButton
     private lateinit var chatButton: JButton
+    private lateinit var viewButton: JButton
     private lateinit var runButton: JButton
     private lateinit var settingButton: JButton
     private lateinit var sendButtons: List<JButton>
@@ -29,8 +30,10 @@ class SenderForm(title: String) : JFrame(title) {
     private lateinit var connector: Connector
 
     private val map = loadCommands()
-    private var chat: ChatForm? = null
-    private var setting: SettingForm? = null
+
+    private var chatForm: ChatForm? = null
+    private var settingForm: SettingForm? = null
+    private var interfaceForm: InterfaceForm? = null
 
     init {
         var lines = 1
@@ -40,8 +43,8 @@ class SenderForm(title: String) : JFrame(title) {
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         isVisible = true
 
-        contentPane.spacer(LineLength, SpacerHeight)
-        contentPane.line {
+        spacer(LineLength, SpacerHeight)
+        row {
             spacer(SpacerLength, LineHeight)
             portBox = comboBox<String>()
             spacer(SpacerLength, LineHeight)
@@ -54,8 +57,8 @@ class SenderForm(title: String) : JFrame(title) {
         }
         ++lines
 
-        contentPane.spacer(LineLength, SpacerHeight)
-        contentPane.line {
+        spacer(LineLength, SpacerHeight)
+        row {
             spacer(LineLength - 3 * (SpacerLength + ButtonLength) - SpacerLength, LineHeight)
             updateButton = button(ButtonLength, LineHeight, "update")
             spacer(SpacerLength, LineHeight)
@@ -66,22 +69,24 @@ class SenderForm(title: String) : JFrame(title) {
         }
         ++lines
 
-        contentPane.spacer(LineLength, SpacerHeight)
-        contentPane.line {
-            spacer(LineLength - 2 * (SpacerLength + ButtonLength) - SpacerLength, LineHeight)
+        spacer(LineLength, SpacerHeight)
+        row {
+            spacer(LineLength - 3 * (SpacerLength + ButtonLength) - SpacerLength, LineHeight)
             runButton = button(ButtonLength, LineHeight, "run")
+            spacer(SpacerLength, LineHeight)
+            viewButton = button(ButtonLength, LineHeight, "view")
             spacer(SpacerLength, LineHeight)
             chatButton = button(ButtonLength, LineHeight, "chat")
             spacer(SpacerLength, LineHeight)
         }
         ++lines
 
-        val pair = contentPane.load()
+        val pair = load()
         commandFields = pair.first
         sendButtons = pair.second
         lines += map.size
 
-        contentPane.spacer(LineLength, SpacerHeight)
+        spacer(LineLength, SpacerHeight)
 
         setBounds(30, 30, LineLength, (LineHeight + SpacerHeight) * lines + SpacerHeight)
         isResizable = false
@@ -92,6 +97,7 @@ class SenderForm(title: String) : JFrame(title) {
         initConnectButton()
         initSendButtons()
         initChatButton()
+        initViewButton()
         initRunButton()
         initSettingButton()
     }
@@ -111,9 +117,9 @@ class SenderForm(title: String) : JFrame(title) {
 
     private fun initConnector() {
         connector = Connector({
-            chat?.out("ID: ${it.id.toChar()}\n   COMMAND: ${it.command.toChar()}\n   DATA: ${it.data.toChar()}")
+            chatForm?.out("ID: ${it.id.toChar()}\n   COMMAND: ${it.command.toChar()}\n   DATA: ${it.data.toChar()}")
         }, {
-            chat?.out(Character.toString(it.toChar().toChar()))
+            chatForm?.out(Character.toString(it.toChar().toChar()))
         })
         connector.loadControllers()
     }
@@ -121,6 +127,7 @@ class SenderForm(title: String) : JFrame(title) {
     private fun initConnectButton() {
         var openPort: SerialPort? = null
         connectButton.addActionListener {
+            connectButton.isEnabled = false
             if (ports.size != 0) {
                 if (openPort == null || !openPort!!.isOpen) {
                     openPort = SerialPort.getCommPort(portBox.selectedItem as String)
@@ -144,7 +151,7 @@ class SenderForm(title: String) : JFrame(title) {
                         sendButtons.forEach { button -> button.isEnabled = true }
                         chatButton.isEnabled = true
                         runButton.isEnabled = true
-                        connector.run(openPort!!)
+                        connector.connect(openPort!!)
                     }
                 } else {
                     connectButton.text = "connect"
@@ -156,12 +163,13 @@ class SenderForm(title: String) : JFrame(title) {
                     sendButtons.forEach { button -> button.isEnabled = false }
                     chatButton.isEnabled = false
                     runButton.isEnabled = false
-                    chat?.dispose()
-                    setting?.dispose()
+                    chatForm?.dispose()
+                    settingForm?.dispose()
                     openPort!!.closePort()
-                    connector.stop()
+                    connector.disconnect()
                 }
             }
+            connectButton.isEnabled = true
         }
     }
 
@@ -175,7 +183,7 @@ class SenderForm(title: String) : JFrame(title) {
             button.addActionListener {
                 val message = field.text
                 connector.send(message)
-                chat?.inp(message)
+                chatForm?.inp(message)
             }
         }
     }
@@ -183,22 +191,44 @@ class SenderForm(title: String) : JFrame(title) {
     private fun initChatButton() {
         chatButton.isEnabled = false
         chatButton.addActionListener {
-            chat?.dispose()
-            SwingUtilities.invokeLater { chat = ChatForm("Chat", connector) }
+            chatForm?.dispose()
+            SwingUtilities.invokeLater { chatForm = ChatForm("Chat", connector) }
+        }
+    }
+
+
+    private fun initViewButton() {
+        viewButton.isEnabled = false
+        viewButton.addActionListener {
+            interfaceForm?.dispose()
+            SwingUtilities.invokeLater {
+                interfaceForm = InterfaceForm("Interface", connector.controllers(), connector.sensors())
+            }
         }
     }
 
     private fun initRunButton() {
         runButton.isEnabled = false
         runButton.addActionListener {
-
+            runButton.isEnabled = false
+            if (connector.stopRequest) {
+                runButton.text = "stop"
+                viewButton.isEnabled = true
+                connector.run()
+            } else {
+                runButton.text = "run"
+                viewButton.isEnabled = false
+                interfaceForm?.dispose()
+                connector.stop()
+            }
+            runButton.isEnabled = true
         }
     }
 
     private fun initSettingButton() {
         settingButton.addActionListener {
-            setting?.dispose()
-            SwingUtilities.invokeLater { setting = SettingForm("Settings", connector) }
+            settingForm?.dispose()
+            SwingUtilities.invokeLater { settingForm = SettingForm("Settings", connector) }
         }
     }
 
@@ -226,8 +256,4 @@ class SenderForm(title: String) : JFrame(title) {
         this.add(panel)
         return Pair(field, button)
     }
-}
-
-fun main(args: Array<String>) = SwingUtilities.invokeLater {
-    SenderForm("Sender")
 }

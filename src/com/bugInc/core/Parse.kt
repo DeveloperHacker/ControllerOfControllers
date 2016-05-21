@@ -12,7 +12,7 @@ class ParseException(message: String) : Exception(message)
 
 fun Connector.saveControllers() {
     val output = "bin/initControllers.txt".output()
-    val it = controllers()
+    val it = controllers().iterator()
     while (it.hasNext()) output.println("${it.next().code()}\n")
     output.flush()
     output.close()
@@ -78,20 +78,17 @@ fun Scanner.parseController(): Controller? {
 }
 
 private class ControllerBuilder() {
-    private var id: Byte? = null
+    private var id: Char? = null
     private var name: String? = null
-    private var startState: Byte? = null
+    private var startState: Char? = null
     private var transitions = LinkedList<Expression>()
     private var expressionBuilder: ExpressionBuilder? = null
     private var size = 0
 
     fun addToken(token: String) = when (size) {
         0 -> {
-            try {
-                id = token.toByte()
-            } catch(exc: ParseException) {
-                throw ParseException("id is not Byte")
-            }
+            if (token.length != 1) throw ParseException("id is not Char")
+            id = token[0]
             ++size
             false
         }
@@ -101,11 +98,8 @@ private class ControllerBuilder() {
             false
         }
         2 -> {
-            try {
-                startState = token.toByte()
-            } catch(exc: ParseException) {
-                throw ParseException("start state is not byte")
-            }
+            if (token.length != 1) throw ParseException("id is not Char")
+            startState = token[0]
             ++size
             false
         }
@@ -126,11 +120,11 @@ private class ControllerBuilder() {
 }
 
 private class ExpressionBuilder() {
-    private var sensorId: Byte? = null
+    private var sensorId: Char? = null
     private var minValue: Byte? = null
     private var maxValue: Byte? = null
-    private var inpState: Byte? = null
-    private var outState: Byte? = null
+    private var inpState: Char? = null
+    private var outState: Char? = null
     private var size = 0
     private val itTTB = templateTransitionsBody().iterator()
 
@@ -140,11 +134,8 @@ private class ExpressionBuilder() {
         if (eToken != "") throw ParseException("Undefined reference $token")
         when (size) {
             0 -> {
-                try {
-                    sensorId = token.toByte()
-                } catch(exc: ParseException) {
-                    throw ParseException("sensorId is not Byte")
-                }
+                if (token.length != 1) throw ParseException("id is not Char")
+                sensorId = token[0]
                 ++size
             }
             1 -> {
@@ -165,7 +156,8 @@ private class ExpressionBuilder() {
             }
             3 -> {
                 try {
-                    inpState = token.toByte()
+                    if (token.length != 1) throw ParseException("id is not Char")
+                    inpState = token[0]
                 } catch(exc: ParseException) {
                     throw ParseException("inpState is not Byte")
                 }
@@ -173,7 +165,8 @@ private class ExpressionBuilder() {
             }
             4 -> {
                 try {
-                    outState = token.toByte()
+                    if (token.length != 1) throw ParseException("id is not Char")
+                    outState = token[0]
                 } catch(exc: ParseException) {
                     throw ParseException("outState is not Byte")
                 }

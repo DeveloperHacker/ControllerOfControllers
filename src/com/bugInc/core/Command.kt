@@ -5,10 +5,14 @@ import java.util.*
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-enum class Command private constructor(val id: Byte) {
-    REPORT(1),
-    READ(2),
-    WRITE(3);
+private val opcodes = HashMap<Char, Command>()
+
+enum class Command private constructor(val id: Char) {
+    ControllerReport('1'),
+    SensorReport('2'),
+    ControllerGetState('3'),
+    SensorGetState('4'),
+    SetState('5');
 
     init {
         opcodes.put(id, this)
@@ -17,9 +21,6 @@ enum class Command private constructor(val id: Byte) {
     operator fun invoke() = id
 
     companion object {
-
-        private val opcodes = HashMap<Byte, Command>()
-
-        operator fun get(id: Byte) = opcodes[id]
+        operator fun get(id: Char) = opcodes[id]
     }
 }

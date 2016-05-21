@@ -8,19 +8,19 @@ import java.util.*
 //* https://github.com/DeveloperHacker *//
 
 data class Letter constructor(
-        val id: Byte,
-        val command: Byte,
-        val data: Byte
+        val id: Char,
+        val command: Char,
+        val data: Char
 ) {
     companion object {
         val FIELDS = 3
     }
 }
 
-class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Unit, private val byte: (Byte) -> Unit) {
+class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Unit, private val char: (Char) -> Unit) {
 
-    val outMail: Queue<Byte> = LinkedList()
-    val inpMail: Queue<Byte> = LinkedList()
+    val outMail: Queue<Char> = LinkedList()
+    val inpMail: Queue<Char> = LinkedList()
 
     private lateinit var inpThread: Thread
     private lateinit var outThread: Thread
@@ -34,9 +34,8 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
                     while (start) {
                         if (scanner.hasNext()) {
                             val char = scanner.next()[0]
-                            val b = char.toByte()
-                            inpMail.add(b)
-                            byte(b)
+                            inpMail.add(char)
+                            char(char)
                         }
                         while (inpMail.size >= Letter.FIELDS) {
                             letter(Letter(
@@ -76,13 +75,13 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
 
     val scanner = Scanner(openPort.inputStream)
 
-    fun put(byte: Byte) = synchronized(outMail) { outMail.add(byte) }
+    fun put(char: Char) = synchronized(outMail) { outMail.add(char) }
 
     fun put(letter: Letter) = synchronized(outMail) {
         outMail.add(letter.id)
         outMail.add(letter.command)
-        outMail.add(letter.data)
+        outMail.add(letter.data.toChar())
     }
 
-    fun put(string: String) = synchronized(outMail) { string.forEach { char -> outMail.add(char.toByte()) } }
+    fun put(string: String) = synchronized(outMail) { string.forEach { char -> outMail.add(char) } }
 }

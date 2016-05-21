@@ -1,5 +1,6 @@
 package com.bugInc.app
 
+import java.awt.Color
 import java.awt.Container
 import java.awt.Dimension
 import javax.swing.*
@@ -8,14 +9,20 @@ import javax.swing.*
 //* https://github.com/DeveloperHacker *//
 
 const val LineHeight = 25
-const val LogHeight = 10 * LineHeight
-const val CodeHeight = 12 * LineHeight
-const val MessageHeight = 3 * LineHeight
+const val ValueLength = 60
+const val NameLength = 120
+const val LampLength = LineHeight
+const val SpacerLength = 5
 const val SpacerHeight = 5
 const val ButtonLength = 100
 const val LabelLength = 60
+const val IDLength = 70
 const val TextLength = 250
-const val SpacerLength = 5
+const val ControllerLength = 2 * ValueLength + IDLength + NameLength + LampLength + 7 * SpacerLength
+const val SensorLength = 2 * ValueLength + IDLength + LampLength + 6 * SpacerLength
+const val LogHeight = 10 * LineHeight
+const val CodeHeight = 12 * LineHeight
+const val MessageHeight = 3 * LineHeight
 const val LineLength = SpacerLength + LabelLength + TextLength + SpacerLength + ButtonLength + 2 * SpacerLength
 
 fun Container.spacer(width: Int, height: Int): JPanel {
@@ -81,9 +88,17 @@ fun Container.label(width: Int, height: Int, name: String): JLabel {
     return label
 }
 
-fun Container.line(init: Container.() -> Unit): Container {
+fun Container.row(init: Container.() -> Unit): JComponent {
     val pane = JPanel()
     pane.layout = BoxLayout(pane, BoxLayout.LINE_AXIS)
+    pane.init()
+    this.add(pane)
+    return pane
+}
+
+fun Container.column(init: Container.() -> Unit): JComponent {
+    val pane = JPanel()
+    pane.layout = BoxLayout(pane, BoxLayout.PAGE_AXIS)
     pane.init()
     this.add(pane)
     return pane
@@ -96,3 +111,14 @@ var JComponent.dimension: Dimension
         minimumSize = value
     }
     get() = preferredSize
+
+operator fun Pair<Color, Color>.get(part: Int): Color {
+    var p = part
+    if (p > 255) p = 255
+    if (p < 0) p = 0
+    val t = p.toDouble() / 255.0
+    val r = first.red * t + second.red * (1 - t)
+    val g = first.green * t + second.green * (1 - t)
+    val b = first.blue * t + second.blue * (1 - t)
+    return Color(r.toInt(), g.toInt(), b.toInt())
+}

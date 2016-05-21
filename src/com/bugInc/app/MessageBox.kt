@@ -5,7 +5,7 @@ import javax.swing.*
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-class MessageBox internal constructor(title: String, message: String) : JFrame(title) {
+class MessageBox(title: String, message: String) : JFrame(title) {
 
     private lateinit var OKButton: JButton
     private lateinit var messagePane: JTextPane
@@ -16,15 +16,15 @@ class MessageBox internal constructor(title: String, message: String) : JFrame(t
         defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
         isVisible = true
 
-        contentPane.spacer(LineLength, SpacerHeight)
-        contentPane.line {
+        spacer(LineLength, SpacerHeight)
+        row {
             spacer(SpacerLength, MessageHeight)
             messagePane = textPane(LineLength - 3 * SpacerLength, MessageHeight, message)
             spacer(SpacerLength, MessageHeight)
         }
 
-        contentPane.spacer(LineLength, SpacerHeight)
-        contentPane.line {
+        spacer(LineLength, SpacerHeight)
+        row {
             spacer((LineLength - ButtonLength) / 2, LineHeight)
             OKButton = button(ButtonLength, LineHeight, "OK")
             spacer((LineLength - ButtonLength) / 2, LineHeight)

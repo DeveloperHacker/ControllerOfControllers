@@ -20,22 +20,22 @@ class ChatForm(title: String, private val connector: Connector) : JFrame(title) 
         defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
         isVisible = true
 
-        contentPane.spacer(LineLength, SpacerHeight)
-        contentPane.line {
+        spacer(LineLength, SpacerHeight)
+        row {
             spacer(SpacerLength, LineHeight)
             messageField = textField(LineLength - 3 * SpacerLength - ButtonLength, LineHeight, "")
             spacer(SpacerLength, LineHeight)
             sendButton = button(ButtonLength, LineHeight, "send")
             spacer(SpacerLength, LineHeight)
         }
-        contentPane.spacer(LineLength, SpacerHeight)
-        contentPane.line {
+        spacer(LineLength, SpacerHeight)
+        row {
             spacer(SpacerLength, LogHeight)
             logPane = textPane("")
             scrollPane(LineLength - 2 * SpacerLength, LogHeight, logPane)
             spacer(SpacerLength, LogHeight)
         }
-        contentPane.spacer(LineLength, SpacerHeight)
+        spacer(LineLength, SpacerHeight)
 
         setBounds(500, 100, LineLength + SpacerLength, 2 * LineHeight + LogHeight + 4 * SpacerHeight)
         isResizable = false
@@ -50,7 +50,7 @@ class ChatForm(title: String, private val connector: Connector) : JFrame(title) 
         sendButton.addActionListener {
             val message = messageField.text
             inp(message)
-            for (byte in message.toByteArray()) connector.send(byte)
+            for (char in message.toCharArray()) connector.send(char)
         }
     }
 

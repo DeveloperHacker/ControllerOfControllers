@@ -1,24 +1,36 @@
 package com.bugInc.core
 
 import com.bugInc.containers.ImmutableList
+import java.util.*
 
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-data class Expression(val sensorId: Byte, val minValue: Byte, val maxValue: Byte, val inpState: Byte, val outState: Byte)
+data class Expression(val sensorId: Char, val minValue: Byte, val maxValue: Byte, val inpState: Char, val outState: Char)
 
-class Controller(val id: Byte, val name: String, val startState: Byte, val transitions: ImmutableList<Expression>) {
+class Controller(
+        val id: Char, val name: String, val startState: Char, val transitions: ImmutableList<Expression>
+) : Comparable<Controller> {
 
     var state = startState
-        private set
 
-    fun nextState(sensorId: Byte, value: Byte): Byte {
+    fun nextState(sensorId: Char, value: Byte): Char? {
         transitions.forEach { exp ->
-            if (exp.sensorId == sensorId && value in exp.minValue..exp.maxValue && state == exp.inpState)
-                return exp.outState
+            if (exp.sensorId == sensorId && value in exp.minValue..exp.maxValue && state == exp.inpState) {
+                state = exp.outState
+                return state
+            }
         }
-        return state
+        return null
     }
+
+    fun boundSensors(): Set<Char> {
+        val result = TreeSet<Char>()
+        transitions.forEach { exp -> if (!result.contains(exp.sensorId)) result.add(exp.sensorId) }
+        return result
+    }
+
+    override fun compareTo(other: Controller) = id.compareTo(other.id)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -27,8 +39,40 @@ class Controller(val id: Byte, val name: String, val startState: Byte, val trans
     }
 
     override fun hashCode() = id.hashCode()
-
-    companion object {}
 }
 
-data class Sensor(val id: Byte, val name: String)
+class Sensor(val id: Char, private val connector: Connector) : Comparable<Sensor> {
+
+    private val controllers = TreeSet<Controller>()
+
+    var value: Byte = 0
+        set(value) = controllers.forEach {
+            field = value
+            val state = it.nextState(id, value)
+            if (state != null) connector.send(Letter(id, Command.SetState(), state))
+        }
+
+    fun countControllers() = controllers.size
+
+    fun add(controller: Controller): Boolean {
+        if (controllers.contains(controller)) return false
+        controllers.add(controller)
+        return true
+    }
+
+    fun remove(controller: Controller): Boolean {
+        if (!controllers.contains(controller)) return false
+        controllers.remove(controller)
+        return true
+    }
+
+    override fun compareTo(other: Sensor) = id.compareTo(other.id)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (this !is Sensor) return false
+        return id == (other as Sensor).id
+    }
+
+    override fun hashCode() = id.hashCode()
+}
