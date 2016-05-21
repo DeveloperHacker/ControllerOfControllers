@@ -7,32 +7,36 @@ import javax.swing.*
 
 class MessageBox internal constructor(title: String, message: String) : JFrame(title) {
 
+    private lateinit var OKButton: JButton
+    private lateinit var messagePane: JTextPane
+
     init {
         contentPane = JPanel()
         contentPane.layout = BoxLayout(contentPane, BoxLayout.PAGE_AXIS)
         defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
         isVisible = true
 
-        val lines = 3
         contentPane.spacer(LineLength, SpacerHeight)
-        val firstLine = JPanel()
-        firstLine.layout = BoxLayout(firstLine, BoxLayout.LINE_AXIS)
-        firstLine.spacer(SpacerLength, lines * LineHeight)
-        firstLine.textPane(LineLength - 3 * SpacerLength, lines * LineHeight, message).isEditable = false
-        firstLine.spacer(SpacerLength, lines * LineHeight)
-        contentPane.add(firstLine)
+        contentPane.line {
+            spacer(SpacerLength, MessageHeight)
+            messagePane = textPane(LineLength - 3 * SpacerLength, MessageHeight, message)
+            spacer(SpacerLength, MessageHeight)
+        }
 
         contentPane.spacer(LineLength, SpacerHeight)
-        val secondLine = JPanel()
-        secondLine.layout = BoxLayout(secondLine, BoxLayout.LINE_AXIS)
-        firstLine.spacer((LineLength - ButtonLength) / 2, LineHeight)
-        secondLine.button(ButtonLength, LineHeight, "OK").addActionListener {
+        contentPane.line {
+            spacer((LineLength - ButtonLength) / 2, LineHeight)
+            OKButton = button(ButtonLength, LineHeight, "OK")
+            spacer((LineLength - ButtonLength) / 2, LineHeight)
+        }
+
+        setBounds(200, 200, LineLength, MessageHeight + 2 * LineHeight + 4 * SpacerHeight)
+        isResizable = false
+
+        messagePane.isEditable = false
+
+        OKButton.addActionListener {
             this@MessageBox.dispose()
         }
-        firstLine.spacer((LineLength - ButtonLength) / 2, LineHeight)
-        contentPane.add(secondLine)
-
-        setBounds(200, 200, LineLength, (lines + 2) * LineHeight + 4 * SpacerHeight)
-        isResizable = false
     }
 }

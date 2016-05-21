@@ -8,9 +8,12 @@ import javax.swing.*
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-class ChatForm(title: String, connector: Connector) : JFrame(title) {
+class ChatForm(title: String, private val connector: Connector) : JFrame(title) {
 
-    val logPane: JTextPane
+    private lateinit var messageField: JTextField
+    private lateinit var sendButton: JButton
+    private lateinit var logPane: JTextPane
+
     init {
         contentPane = JPanel()
         contentPane.layout = BoxLayout(contentPane, BoxLayout.PAGE_AXIS)
@@ -18,41 +21,40 @@ class ChatForm(title: String, connector: Connector) : JFrame(title) {
         isVisible = true
 
         contentPane.spacer(LineLength, SpacerHeight)
-        val firstLine = JPanel()
-        firstLine.layout = BoxLayout(firstLine, BoxLayout.LINE_AXIS)
-        firstLine.spacer(SpacerLength, LineHeight)
-        val messageField = firstLine.textField(LineLength - 3 * SpacerLength - ButtonLength, LineHeight, "")
-        firstLine.spacer(SpacerLength, LineHeight)
-        val sendButton = firstLine.button(ButtonLength, LineHeight, "send")
-        firstLine.spacer(SpacerLength, LineHeight)
-        contentPane.add(firstLine)
-
-        val lines = 10
+        contentPane.line {
+            spacer(SpacerLength, LineHeight)
+            messageField = textField(LineLength - 3 * SpacerLength - ButtonLength, LineHeight, "")
+            spacer(SpacerLength, LineHeight)
+            sendButton = button(ButtonLength, LineHeight, "send")
+            spacer(SpacerLength, LineHeight)
+        }
         contentPane.spacer(LineLength, SpacerHeight)
-        val secondLine = JPanel()
-        secondLine.layout = BoxLayout(secondLine, BoxLayout.LINE_AXIS)
-        secondLine.spacer(SpacerLength, lines * LineHeight)
-        logPane = textPane("")
-        logPane.isEditable = false
-        secondLine.scrollPane(LineLength - 2 * SpacerLength, lines * LineHeight, logPane)
-        secondLine.spacer(SpacerLength, lines * LineHeight)
-        contentPane.add(secondLine)
-
+        contentPane.line {
+            spacer(SpacerLength, LogHeight)
+            logPane = textPane("")
+            scrollPane(LineLength - 2 * SpacerLength, LogHeight, logPane)
+            spacer(SpacerLength, LogHeight)
+        }
         contentPane.spacer(LineLength, SpacerHeight)
 
-        setBounds(100, 100, LineLength + SpacerLength, (lines + 2) * LineHeight + 4 * SpacerHeight)
+        setBounds(500, 100, LineLength + SpacerLength, 2 * LineHeight + LogHeight + 4 * SpacerHeight)
         isResizable = false
 
-        sendButton.addActionListener {
-            try {
-                val message = messageField.text
-                logPane.text = "${logPane.text}> $message\n"
-                for (byte in message.toByteArray()) connector.send(byte)
-            } catch (error: Exception) {
-                MessageBox("Error", error.toString())
-            }
-        }
+        logPane.isEditable = false
 
+        initSendButton()
+        initMessageField()
+    }
+
+    private fun initSendButton() {
+        sendButton.addActionListener {
+            val message = messageField.text
+            inp(message)
+            for (byte in message.toByteArray()) connector.send(byte)
+        }
+    }
+
+    private fun initMessageField() {
         messageField.addKeyListener(object : KeyListener {
             override fun keyTyped(e: KeyEvent) = Unit
             override fun keyReleased(e: KeyEvent) = Unit
@@ -65,7 +67,11 @@ class ChatForm(title: String, connector: Connector) : JFrame(title) {
         })
     }
 
-    fun add(message: String) {
+    fun inp(message: String) {
+        logPane.text = "${logPane.text}> $message\n"
+    }
+
+    fun out(message: String) {
         logPane.text = "${logPane.text}< $message\n"
     }
 }

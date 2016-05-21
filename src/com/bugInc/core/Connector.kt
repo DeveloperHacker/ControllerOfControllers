@@ -1,78 +1,70 @@
 package com.bugInc.core
 
-import com.bugInc.math.Figure
 import com.fazecast.jSerialComm.SerialPort
 import java.util.*
 
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-const val SYNC: Byte = 1
-const val GET_STATE: Byte = 2
-const val SET_STATE: Byte = 3
-
-class Connector(private val letter: (Letter) -> Any, private val byte: (Byte) -> Any) {
+class Connector(private val letter: (Letter) -> Unit, private val byte: (Byte) -> Unit) {
 
     private var port: Port? = null
 
     private val controllers = HashMap<Byte, Controller>()
 
-    fun addController(ID: Byte, name: String, state: Byte = UNABLE, figure: Figure) {
-        if (controllers.contains(ID)) throw IllegalArgumentException("Controller with ID: $ID is already exist")
-        controllers.put(ID, Controller(ID, name, state, figure))
+    private val sensors = HashMap<Byte, Sensor>()
+
+    fun controllers(): Iterator<Controller> = controllers.values.iterator()
+
+    fun sensors(): Iterator<Sensor> = sensors.values.iterator()
+
+    fun addController(controller: Controller): Boolean {
+        if (controllers.contains(controller.id)) return false
+        controllers.put(controller.id, controller)
+        return true
     }
 
-    fun removeController(ID: Byte) {
-        if (!controllers.contains(ID)) throw IllegalArgumentException("Controller with ID: $ID is not found")
-        controllers.remove(ID)
+    fun addSensor(sensor: Sensor): Boolean {
+        if (sensors.contains(sensor.id)) return false
+        sensors.put(sensor.id, sensor)
+        return true
     }
 
-    fun getState(ID: Byte): Byte {
-        if (!controllers.contains(ID)) throw IllegalArgumentException("Controller with ID: $ID is not found")
-        return (controllers[ID] as Controller).state
+    fun removeController(id: Byte) {
+        if (!controllers.contains(id)) throw NotFoundExceptions("Controller with id: $id is not found")
+        controllers.remove(id)
     }
 
-    fun setState(ID: Byte, state: Byte) {
-        if (!controllers.contains(ID)) throw IllegalArgumentException("Controller with ID: $ID is not found")
-        (controllers[ID] as Controller).state = state
-        send(Letter(ID, SET_STATE, state))
-    }
+    fun getController(id: Byte) = controllers[id]
 
-    fun syncState(ID: Byte) {
-        if (!controllers.contains(ID)) throw IllegalArgumentException("Controller with ID: $ID is not found")
-        send(Letter(ID, GET_STATE, 0))
-    }
+    fun getSensors(id: Byte) = sensors[id]
 
-    fun getGeometry(ID: Byte): Figure {
-        if (!controllers.contains(ID)) throw IllegalArgumentException("Controller with ID: $ID is not found")
-        return (controllers[ID] as Controller).figure
+    fun containsController(id: Byte) = controllers.containsKey(id)
+
+    fun containsSensors(id: Byte) = sensors.containsKey(id)
+
+    fun getUniqueId(): Byte? {
+        var id = 0.toByte()
+        while (id <= Byte.MAX_VALUE) {
+            if (!controllers.containsKey(id)) return id
+            ++id
+        }
+        return null
     }
 
     private val receive: (Letter) -> Unit = { letter ->
         letter(letter)
-//        when (letter.COMMAND) {
-//            SYNC -> (controllers[letter.ID] as Controller).state = letter.DATA
-//            else -> throw IllegalArgumentException("Command ${letter.COMMAND} is not found")
+//        when (letter.command) {
+//            SYNC -> (controllers[letter.id] as Controller).state = letter.data
+//            else -> throw IllegalArgumentException("Command ${letter.command} is not found")
 //        }
     }
 
-    fun send(letter: Letter) {
-        if (port != null) {
-            port!!.put(letter.ID)
-            port!!.put(letter.COMMAND)
-            port!!.put(letter.DATA)
-        } else throw Error("COM Port is not open")
-    }
+    fun send(letter: Letter) = port?.let { it.put(letter) } ?: throw PortNotOpenException()
 
-    fun send(letter: String) {
-        if (port != null) letter.forEach { char -> port!!.put(char.toByte()) }
-        else throw Error("COM Port is not open")
-    }
+    fun send(string: String) = port?.let { it.put(string) } ?: throw PortNotOpenException()
 
-    fun send(byte: Byte) {
-        if (port != null) port!!.put(byte)
-        else throw Error("COM Port is not open")
-    }
+    fun send(byte: Byte) = port?.let { it.put(byte) } ?: throw PortNotOpenException()
 
     fun run(port: SerialPort) {
         this.port = Port(port, receive, { byte(it) })
@@ -81,6 +73,10 @@ class Connector(private val letter: (Letter) -> Any, private val byte: (Byte) ->
 
     fun stop() {
         if (port != null) port!!.stop()
-        else throw Error("COM Port is not open")
+        else throw PortNotOpenException()
     }
 }
+
+class PortNotOpenException() : Exception()
+
+class NotFoundExceptions(message: String) : Exception(message)

@@ -8,9 +8,9 @@ import java.util.*
 //* https://github.com/DeveloperHacker *//
 
 data class Letter constructor(
-        val ID: Byte,
-        val COMMAND: Byte,
-        val DATA: Byte
+        val id: Byte,
+        val command: Byte,
+        val data: Byte
 ) {
     companion object {
         val FIELDS = 3
@@ -40,9 +40,9 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
                         }
                         while (inpMail.size >= Letter.FIELDS) {
                             letter(Letter(
-                                    ID = inpMail.poll(),
-                                    COMMAND = inpMail.poll(),
-                                    DATA = inpMail.poll()
+                                    id = inpMail.poll(),
+                                    command = inpMail.poll(),
+                                    data = inpMail.poll()
                             ))
                         }
                     }
@@ -77,4 +77,12 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
     val scanner = Scanner(openPort.inputStream)
 
     fun put(byte: Byte) = synchronized(outMail) { outMail.add(byte) }
+
+    fun put(letter: Letter) = synchronized(outMail) {
+        outMail.add(letter.id)
+        outMail.add(letter.command)
+        outMail.add(letter.data)
+    }
+
+    fun put(string: String) = synchronized(outMail) { string.forEach { char -> outMail.add(char.toByte()) } }
 }

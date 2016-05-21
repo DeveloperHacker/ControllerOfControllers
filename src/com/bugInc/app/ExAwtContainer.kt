@@ -8,6 +8,9 @@ import javax.swing.*
 //* https://github.com/DeveloperHacker *//
 
 const val LineHeight = 25
+const val LogHeight = 10 * LineHeight
+const val CodeHeight = 12 * LineHeight
+const val MessageHeight = 3 * LineHeight
 const val SpacerHeight = 5
 const val ButtonLength = 100
 const val LabelLength = 60
@@ -76,6 +79,14 @@ fun Container.label(width: Int, height: Int, name: String): JLabel {
     label.dimension = Dimension(width, height)
     this.add(label)
     return label
+}
+
+fun Container.line(init: Container.() -> Unit): Container {
+    val pane = JPanel()
+    pane.layout = BoxLayout(pane, BoxLayout.LINE_AXIS)
+    pane.init()
+    this.add(pane)
+    return pane
 }
 
 var JComponent.dimension: Dimension

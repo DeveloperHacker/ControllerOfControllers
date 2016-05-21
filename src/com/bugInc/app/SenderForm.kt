@@ -1,22 +1,36 @@
 package com.bugInc.app
 
 import com.bugInc.core.Connector
-import com.bugInc.math.Figure
-import com.bugInc.math.Vector
+import com.bugInc.core.loadCommands
+import com.bugInc.core.loadControllers
 import com.fazecast.jSerialComm.SerialPort
 import java.awt.Container
-import java.io.File
-import java.io.FileNotFoundException
 import java.util.*
 import javax.swing.*
 
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-class SenderForm(title: String, init: () -> Map<String, String>) : JFrame(title) {
+class SenderForm(title: String) : JFrame(title) {
 
-    private val map = init()
+    private lateinit var portBox: JComboBox<String>
+    private lateinit var baudRateBox: JComboBox<Int>
+    private lateinit var parityBox: JComboBox<String>
+    private lateinit var stopBitsBox: JComboBox<Int>
+    private lateinit var updateButton: JButton
+    private lateinit var connectButton: JButton
+    private lateinit var chatButton: JButton
+    private lateinit var runButton: JButton
+    private lateinit var settingButton: JButton
+    private lateinit var sendButtons: List<JButton>
+    private lateinit var commandFields: List<JTextField>
+
+    private lateinit var ports: Array<SerialPort>
+    private lateinit var connector: Connector
+
+    private val map = loadCommands()
     private var chat: ChatForm? = null
+    private var setting: SettingForm? = null
 
     init {
         var lines = 1
@@ -27,36 +41,44 @@ class SenderForm(title: String, init: () -> Map<String, String>) : JFrame(title)
         isVisible = true
 
         contentPane.spacer(LineLength, SpacerHeight)
-        val firstLine = JPanel()
-        firstLine.layout = BoxLayout(firstLine, BoxLayout.LINE_AXIS)
-        firstLine.spacer(SpacerLength, LineHeight)
-        val portBox = firstLine.comboBox<String>()
-        firstLine.spacer(SpacerLength, LineHeight)
-        val baudRateBox = firstLine.comboBox(4, 300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000)
-        firstLine.spacer(SpacerLength, LineHeight)
-        val parityBox = firstLine.comboBox(2, "none", "odd", "even", "mark", "space")
-        firstLine.spacer(SpacerLength, LineHeight)
-        val stopBitsBox = firstLine.comboBox(1, 1, 2)
-        firstLine.spacer(SpacerLength, LineHeight)
-        contentPane.add(firstLine)
+        contentPane.line {
+            spacer(SpacerLength, LineHeight)
+            portBox = comboBox<String>()
+            spacer(SpacerLength, LineHeight)
+            baudRateBox = comboBox(4, 300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000)
+            spacer(SpacerLength, LineHeight)
+            parityBox = comboBox(2, "none", "odd", "even", "mark", "space")
+            spacer(SpacerLength, LineHeight)
+            stopBitsBox = comboBox(1, 1, 2)
+            spacer(SpacerLength, LineHeight)
+        }
         ++lines
 
         contentPane.spacer(LineLength, SpacerHeight)
-        val secondLine = JPanel()
-        secondLine.layout = BoxLayout(secondLine, BoxLayout.LINE_AXIS)
-        secondLine.spacer(LineLength - 3 * (SpacerLength + ButtonLength) - SpacerLength, LineHeight)
-        val updateButton = secondLine.button(ButtonLength, LineHeight, "update")
-        secondLine.spacer(SpacerLength, LineHeight)
-        val connectButton = secondLine.button(ButtonLength, LineHeight, "connect")
-        secondLine.spacer(SpacerLength, LineHeight)
-        val chatButton = secondLine.button(ButtonLength, LineHeight, "chat")
-        secondLine.spacer(SpacerLength, LineHeight)
-        contentPane.add(secondLine)
+        contentPane.line {
+            spacer(LineLength - 3 * (SpacerLength + ButtonLength) - SpacerLength, LineHeight)
+            updateButton = button(ButtonLength, LineHeight, "update")
+            spacer(SpacerLength, LineHeight)
+            connectButton = button(ButtonLength, LineHeight, "connect")
+            spacer(SpacerLength, LineHeight)
+            settingButton = button(ButtonLength, LineHeight, "setting")
+            spacer(SpacerLength, LineHeight)
+        }
         ++lines
 
-        val pair = load(contentPane)
-        val fields = pair.first
-        val buttons = pair.second
+        contentPane.spacer(LineLength, SpacerHeight)
+        contentPane.line {
+            spacer(LineLength - 2 * (SpacerLength + ButtonLength) - SpacerLength, LineHeight)
+            runButton = button(ButtonLength, LineHeight, "run")
+            spacer(SpacerLength, LineHeight)
+            chatButton = button(ButtonLength, LineHeight, "chat")
+            spacer(SpacerLength, LineHeight)
+        }
+        ++lines
+
+        val pair = contentPane.load()
+        commandFields = pair.first
+        sendButtons = pair.second
         lines += map.size
 
         contentPane.spacer(LineLength, SpacerHeight)
@@ -64,20 +86,39 @@ class SenderForm(title: String, init: () -> Map<String, String>) : JFrame(title)
         setBounds(30, 30, LineLength, (LineHeight + SpacerHeight) * lines + SpacerHeight)
         isResizable = false
 
-        var ports = SerialPort.getCommPorts()
+        initPortBox()
+        initUpdateButton()
+        initConnector()
+        initConnectButton()
+        initSendButtons()
+        initChatButton()
+        initRunButton()
+        initSettingButton()
+    }
+
+    private fun initPortBox() {
+        ports = SerialPort.getCommPorts()
         for (port in ports) portBox.addItem(port.systemPortName)
+    }
+
+    private fun initUpdateButton() {
         updateButton.addActionListener {
             ports = SerialPort.getCommPorts()
             portBox.removeAllItems()
             for (port in ports) portBox.addItem(port.systemPortName)
         }
+    }
 
-        val connector = Connector({
-            MessageBox("Input", "ID: ${it.ID.toChar()}\nCOMMAND: ${it.COMMAND.toChar()}\nDATA: ${it.DATA.toChar()}")
-        }, { b ->
-            chat?.add(Character.toString(b.toByte().toChar()))
-            true
+    private fun initConnector() {
+        connector = Connector({
+            chat?.out("ID: ${it.id.toChar()}\n   COMMAND: ${it.command.toChar()}\n   DATA: ${it.data.toChar()}")
+        }, {
+            chat?.out(Character.toString(it.toChar().toChar()))
         })
+        connector.loadControllers()
+    }
+
+    private fun initConnectButton() {
         var openPort: SerialPort? = null
         connectButton.addActionListener {
             if (ports.size != 0) {
@@ -86,50 +127,60 @@ class SenderForm(title: String, init: () -> Map<String, String>) : JFrame(title)
                     openPort!!.setComPortTimeouts(SerialPort.TIMEOUT_SCANNER, 0, 0)
                     openPort!!.baudRate = baudRateBox.selectedItem as Int
                     openPort!!.numStopBits = stopBitsBox.selectedItem as Int
-                    openPort!!.parity = (parityBox.selectedItem as String).parity()
+                    openPort!!.parity = when (parityBox.selectedItem as String) {
+                        "odd" -> SerialPort.ODD_PARITY
+                        "even" -> SerialPort.EVEN_PARITY
+                        "mark" -> SerialPort.MARK_PARITY
+                        "space" -> SerialPort.SPACE_PARITY
+                        else -> SerialPort.NO_PARITY
+                    }
                     if (openPort!!.openPort()) {
-                        connectButton.text = "Disconnect"
+                        connectButton.text = "disconnect"
                         portBox.isEnabled = false
                         baudRateBox.isEnabled = false
                         updateButton.isEnabled = false
                         parityBox.isEnabled = false
                         stopBitsBox.isEnabled = false
-                        buttons.forEach { button -> button.isEnabled = true }
+                        sendButtons.forEach { button -> button.isEnabled = true }
                         chatButton.isEnabled = true
+                        runButton.isEnabled = true
                         connector.run(openPort!!)
                     }
                 } else {
-                    connectButton.text = "Connect"
+                    connectButton.text = "connect"
                     portBox.isEnabled = true
                     baudRateBox.isEnabled = true
                     updateButton.isEnabled = true
                     parityBox.isEnabled = true
                     stopBitsBox.isEnabled = true
-                    buttons.forEach { button -> button.isEnabled = false }
+                    sendButtons.forEach { button -> button.isEnabled = false }
                     chatButton.isEnabled = false
+                    runButton.isEnabled = false
                     chat?.dispose()
+                    setting?.dispose()
                     openPort!!.closePort()
                     connector.stop()
                 }
             }
         }
+    }
 
-        connector.addController(0.toByte(), "test", 0.toByte(), Figure(Vector(0.0, 0.0), 10.0, 10.0, 0.01))
-        val iBut = buttons.iterator()
-        val iFie = fields.iterator()
+    private fun initSendButtons() {
+        val iBut = sendButtons.iterator()
+        val iFie = commandFields.iterator()
         while (iBut.hasNext() && iFie.hasNext()) {
             val button = iBut.next()
             val field = iFie.next()
             button.isEnabled = false
             button.addActionListener {
-                try {
-                    connector.send(field.text)
-                } catch (error: Exception) {
-                    MessageBox("Error", error.toString())
-                }
+                val message = field.text
+                connector.send(message)
+                chat?.inp(message)
             }
         }
+    }
 
+    private fun initChatButton() {
         chatButton.isEnabled = false
         chatButton.addActionListener {
             chat?.dispose()
@@ -137,19 +188,33 @@ class SenderForm(title: String, init: () -> Map<String, String>) : JFrame(title)
         }
     }
 
-    private fun load(panel: Container): Pair<MutableList<JTextField>, MutableList<JButton>> {
+    private fun initRunButton() {
+        runButton.isEnabled = false
+        runButton.addActionListener {
+
+        }
+    }
+
+    private fun initSettingButton() {
+        settingButton.addActionListener {
+            setting?.dispose()
+            SwingUtilities.invokeLater { setting = SettingForm("Settings", connector) }
+        }
+    }
+
+    private fun Container.load(): Pair<MutableList<JTextField>, MutableList<JButton>> {
         val fields = LinkedList<JTextField>()
         val buttons = LinkedList<JButton>()
         map.forEach { entry ->
-            panel.spacer(LineLength, SpacerHeight)
-            val pair = line(panel, entry.key, entry.value, "send")
+            spacer(LineLength, SpacerHeight)
+            val pair = line(entry.key, entry.value, "send")
             fields.add(pair.first)
             buttons.add(pair.second)
         }
         return Pair(fields, buttons)
     }
 
-    private fun line(pane: Container, labelName: String, text: String, buttonName: String): Pair<JTextField, JButton> {
+    private fun Container.line(labelName: String, text: String, buttonName: String): Pair<JTextField, JButton> {
         val panel = JPanel()
         panel.layout = BoxLayout(panel, BoxLayout.LINE_AXIS)
         panel.spacer(SpacerLength, LineHeight)
@@ -158,37 +223,11 @@ class SenderForm(title: String, init: () -> Map<String, String>) : JFrame(title)
         panel.spacer(SpacerLength, LineHeight)
         val button = panel.button(ButtonLength, LineHeight, buttonName)
         panel.spacer(SpacerLength, LineHeight)
-        pane.add(panel)
+        this.add(panel)
         return Pair(field, button)
     }
 }
 
-fun String.parity() = when (this) {
-    "odd" -> SerialPort.ODD_PARITY
-    "even" -> SerialPort.EVEN_PARITY
-    "mark" -> SerialPort.MARK_PARITY
-    "space" -> SerialPort.SPACE_PARITY
-    else -> SerialPort.NO_PARITY
-}
-
 fun main(args: Array<String>) = SwingUtilities.invokeLater {
-    SenderForm("Sender") {
-        val map = HashMap<String, String>()
-        val input = "bin/initLines.txt".input()
-        while (input.hasNextLine()) {
-            val line = input.nextLine()
-            if (line == "") continue
-            val it = Scanner(line)
-            val key = it.next()
-            val value = it.next()
-            map.put(key, value)
-        }
-        map
-    }
-}
-
-fun String.input(): Scanner {
-    val file = File(this)
-    if (!file.isFile) throw FileNotFoundException(file.absolutePath)
-    return Scanner(file, "windows-1251")
+    SenderForm("Sender")
 }
