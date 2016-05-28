@@ -114,7 +114,7 @@ class Connector(private val letter: (Letter) -> Unit, private val char: (Char) -
                 }
             }
             stopRequest = false
-//            checkTread.start()
+            checkTread.start()
         }
     }
 
