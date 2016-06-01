@@ -8,6 +8,8 @@ import javax.swing.SwingUtilities
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
+const val sendDelay = 4L
+
 class Connector(private val letter: (Letter) -> Unit, private val char: (Char) -> Unit) {
 
     private var port: Port? = null
@@ -54,7 +56,7 @@ class Connector(private val letter: (Letter) -> Unit, private val char: (Char) -
     fun containsSensor(id: Char) = sensors.containsKey(id)
 
     fun getUniqueId(): Char? {
-        var id = 33.toByte()
+        var id = 33
         while (id <= Byte.MAX_VALUE) {
             if (!controllers.containsKey(id.toChar())) return id.toChar()
             ++id
@@ -69,7 +71,7 @@ class Connector(private val letter: (Letter) -> Unit, private val char: (Char) -
                 Command.SensorReport -> {
                     val sensor = sensors[letter.id]
                             ?: throw IllegalArgumentException("Sensor with id ${letter.id} is not found")
-                    sensor.value = letter.data.toByte()
+                    sensor.value = Int.valueOf(letter.data.toBinaryString(), 8)
                 }
                 Command.ControllerReport -> {
                     val controller = controllers[letter.id]
@@ -80,7 +82,7 @@ class Connector(private val letter: (Letter) -> Unit, private val char: (Char) -
             }
         } catch(exc: Exception) {
             SwingUtilities.invokeLater { "${exc.javaClass}: " + MessageBox("Error", exc.toString()) }
-            stop()
+//            stop()
         }
     }
 
@@ -110,7 +112,10 @@ class Connector(private val letter: (Letter) -> Unit, private val char: (Char) -
             checkTread = object : Thread() {
                 override fun run() {
                     controllers.values.forEach { send(Letter(it.id, Command.ControllerGetState(), '0')) }
-                    while (!stopRequest) sensors.values.forEach { send(Letter(it.id, Command.SensorGetState(), '0')) }
+                    while (!stopRequest) {
+                        sensors.values.forEach { send(Letter(it.id, Command.SensorGetState(), '0')) }
+                        sleep((sensors.values.size + 1) * sendDelay)
+                    }
                 }
             }
             stopRequest = false
@@ -122,6 +127,11 @@ class Connector(private val letter: (Letter) -> Unit, private val char: (Char) -
         stopRequest = true
     }
 }
+
+fun Int.Companion.valueOf(bits: String, length: Int)
+        = Integer.valueOf(bits.filterIndexed { i, c -> i >= bits.length - length }, 2)
+
+fun Char.toBinaryString() = Integer.toBinaryString(this.toInt())
 
 class PortNotOpenException() : Exception()
 

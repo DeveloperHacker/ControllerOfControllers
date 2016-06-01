@@ -6,7 +6,7 @@ import java.util.*
 //** ** Created by DeveloperHacker ** **//
 //* https://github.com/DeveloperHacker *//
 
-data class Expression(val sensorId: Char, val minValue: Byte, val maxValue: Byte, val inpState: Char, val outState: Char)
+data class Expression(val sensorId: Char, val minValue: Int, val maxValue: Int, val inpState: Char, val outState: Char)
 
 class Controller(
         val id: Char, val name: String, val startState: Char, val transitions: ImmutableList<Expression>
@@ -14,7 +14,7 @@ class Controller(
 
     var state = startState
 
-    fun nextState(sensorId: Char, value: Byte): Char? {
+    fun nextState(sensorId: Char, value: Int): Char? {
         transitions.forEach { exp ->
             if (exp.sensorId == sensorId && value in exp.minValue..exp.maxValue && state == exp.inpState) {
                 state = exp.outState
@@ -41,14 +41,17 @@ class Controller(
     override fun hashCode() = id.hashCode()
 }
 
-class Sensor(val id: Char, private val connector: Connector) : Comparable<Sensor> {
+class Sensor(
+        val id: Char,
+        private val connector: Connector
+) : Comparable<Sensor> {
 
     private val controllers = TreeSet<Controller>()
 
-    var value: Byte = 0
-        set(value) = controllers.forEach {
+    var value: Int = 0
+        set(value) = controllers.forEach { controller ->
             field = value
-            val state = it.nextState(id, value)
+            val state = controller.nextState(id, value)
             if (state != null) connector.send(Letter(id, Command.SetState(), state))
         }
 

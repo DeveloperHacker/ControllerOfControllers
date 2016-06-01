@@ -3,6 +3,7 @@ package com.bugInc.app
 import com.bugInc.core.Connector
 import com.bugInc.core.loadCommands
 import com.bugInc.core.loadControllers
+import com.bugInc.core.parseAudios
 import com.fazecast.jSerialComm.SerialPort
 import java.awt.Container
 import java.util.*
@@ -202,7 +203,7 @@ class SenderForm(title: String) : JFrame(title) {
         viewButton.addActionListener {
             interfaceForm?.dispose()
             SwingUtilities.invokeLater {
-                interfaceForm = InterfaceForm("Interface", connector.controllers(), connector.sensors())
+                interfaceForm = InterfaceForm("Interface", connector.controllers(), connector.sensors(), parseAudios())
             }
         }
     }

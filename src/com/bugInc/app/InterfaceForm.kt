@@ -2,6 +2,8 @@ package com.bugInc.app
 
 import com.bugInc.core.Controller
 import com.bugInc.core.Sensor
+import com.bugInc.core.Sound
+import com.bugInc.core.Trio
 import java.awt.Color
 import java.awt.Dimension
 import java.awt.Graphics
@@ -14,7 +16,8 @@ import javax.swing.border.BevelBorder
 //* https://github.com/DeveloperHacker *//
 
 class InterfaceForm(
-        title: String, controllers: Collection<Controller>, sensors: Collection<Sensor>
+        title: String, controllers: Collection<Controller>, sensors: Collection<Sensor>,
+        private val audios: Collection<Trio<Char, IntRange, String>>
 ) : JFrame(title) {
 
     val repaintCycleTime = 100
@@ -26,7 +29,7 @@ class InterfaceForm(
     private val controllersLamps = TreeMap<Char, Lamp>()
     private val sensorsLamps = TreeMap<Char, Lamp>()
     private val controllers = TreeMap<Controller, Char>()
-    private val sensors = TreeMap<Sensor, Byte>()
+    private val sensors = TreeMap<Sensor, Int>()
     private val controllerStates = TreeMap<Char, JLabel>()
     private val sensorValues = TreeMap<Char, JLabel>()
 
@@ -37,7 +40,7 @@ class InterfaceForm(
         isVisible = true
 
         val width = ControllerLength + SensorLength + 4 * SpacerLength
-        val height = (Math.max(controllers.size, sensors.size) + 1) * (LineHeight + SpacerHeight) + 3 * SpacerHeight
+        val height = (Math.max(controllers.size, sensors.size) + 1) * (LineHeight + 3 * SpacerHeight)
 
         spacer(SpacerLength, height)
         column {
@@ -69,7 +72,7 @@ class InterfaceForm(
             sensors.forEach { sensor ->
                 val lamp = Lamp()
                 sensorsLamps.put(sensor.id, lamp)
-                this@InterfaceForm.sensors.put(sensor, sensor.value.toByte())
+                this@InterfaceForm.sensors.put(sensor, sensor.value)
                 spacer(SensorLength, SpacerHeight)
                 row {
                     spacer(SpacerLength, LineHeight)
@@ -94,16 +97,12 @@ class InterfaceForm(
 
         paintClock = Timer(repaintCycleTime) {
             controllersLamps.values.forEach {
-                if (it.power != 0) {
-                    it.update()
-                    it.repaint()
-                }
+                it.update()
+                it.repaint()
             }
             sensorsLamps.values.forEach {
-                if (it.power != 0) {
-                    it.update()
-                    it.repaint()
-                }
+                it.update()
+                it.repaint()
             }
         }
         updateClock = Timer(updateCycleTime) { update() }
@@ -130,6 +129,12 @@ class InterfaceForm(
                 sensorsLamps[sensor.id]?.pulse()
                 sensorValues[sensor.id]?.text = "Value: ${sensor.value}"
                 sensors[sensor] = sensor.value
+                audios.forEach loop@{
+                    if (sensor.id == it.first && sensor.value in it.second) {
+                        Sound.play(it.third)
+                        return@loop
+                    }
+                }
             }
         }
     }

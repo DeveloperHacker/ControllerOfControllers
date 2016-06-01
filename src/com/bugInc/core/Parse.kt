@@ -30,6 +30,31 @@ fun Connector.loadControllers() {
     input.close()
 }
 
+data class Trio<F, S, T>(val first: F, val second: S, val third: T)
+
+fun parseAudios(): Collection<Trio<Char, IntRange, String>> {
+    val input = "bin/initAudio.txt".input()
+    val result = ArrayList<Trio<Char, IntRange, String>>()
+    while (input.hasNextLine()) {
+        val line = input.nextLine()
+        if (line == "") continue
+        val scnLine = Scanner(line)
+        if (!scnLine.hasNext()) throw ParseException("initAudios: Syntax error in line ${result.size}, not found Id")
+        val token = scnLine.next()
+        if (token.length != 1) throw ParseException("initAudios: Syntax error in line ${result.size}, id is not char")
+        val id = token[0]
+        if (!scnLine.hasNextInt()) throw ParseException("initAudios: Syntax error in line ${result.size}, not found min Value")
+        val min = scnLine.nextInt()
+        if (!scnLine.hasNextInt()) throw ParseException("initAudios: Syntax error in line ${result.size}, not found max Value")
+        val max = scnLine.nextInt()
+        if (!scnLine.hasNext()) throw ParseException("initAudios: Syntax error in line ${result.size}, not found audio url")
+        val url = scnLine.next()
+        // it is ................
+        result.add(Trio(id, min..max, url))
+    }
+    return result
+}
+
 fun loadCommands(): Map<String, String> {
     val map = HashMap<String, String>()
     val input = "bin/initLines.txt".input()
@@ -121,8 +146,8 @@ private class ControllerBuilder() {
 
 private class ExpressionBuilder() {
     private var sensorId: Char? = null
-    private var minValue: Byte? = null
-    private var maxValue: Byte? = null
+    private var minValue: Int? = null
+    private var maxValue: Int? = null
     private var inpState: Char? = null
     private var outState: Char? = null
     private var size = 0
@@ -140,17 +165,17 @@ private class ExpressionBuilder() {
             }
             1 -> {
                 try {
-                    minValue = token.toByte()
+                    minValue = token.toInt()
                 } catch(exc: ParseException) {
-                    throw ParseException("minValue is not Byte")
+                    throw ParseException("minValue is not Int")
                 }
                 ++size
             }
             2 -> {
                 try {
-                    maxValue = token.toByte()
+                    maxValue = token.toInt()
                 } catch(exc: ParseException) {
-                    throw ParseException("maxValue is not Byte")
+                    throw ParseException("maxValue is not Int")
                 }
                 ++size
             }
@@ -159,7 +184,7 @@ private class ExpressionBuilder() {
                     if (token.length != 1) throw ParseException("id is not Char")
                     inpState = token[0]
                 } catch(exc: ParseException) {
-                    throw ParseException("inpState is not Byte")
+                    throw ParseException("inpState is not Int")
                 }
                 ++size
             }
@@ -168,7 +193,7 @@ private class ExpressionBuilder() {
                     if (token.length != 1) throw ParseException("id is not Char")
                     outState = token[0]
                 } catch(exc: ParseException) {
-                    throw ParseException("outState is not Byte")
+                    throw ParseException("outState is not Int")
                 }
                 ++size
                 return Expression(sensorId!!, minValue!!, maxValue!!, inpState!!, outState!!)

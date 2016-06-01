@@ -51,13 +51,14 @@ class Port constructor(openPort: SerialPort, private val letter: (Letter) -> Uni
                 override fun run() {
                     while (start) {
                         synchronized(outMail) {
-                            if (!outMail.isEmpty()) {
+                            if (outMail.size >= 3) {
                                 val str = StringBuilder("")
-                                while (!outMail.isEmpty()) str.append(outMail.poll().toChar())
+                                for (i in 1..3) str.append(outMail.poll())
                                 output.print(str.toString())
                                 output.flush()
                             }
                         }
+                        sleep(sendDelay)
                     }
                 }
             }
